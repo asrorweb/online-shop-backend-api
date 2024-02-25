@@ -1,3 +1,5 @@
+import jwt from "jsonwebtoken";
+
 // Middleware for authenticating JWT token
 function authenticateToken(req, res, next) {
   // Extract the token from the Authorization header
@@ -15,7 +17,7 @@ function authenticateToken(req, res, next) {
     }
 
     // Add the decoded user information to the request object
-    req.user = decoded;
+    req.user = decoded.user;
     next();
   });
 }

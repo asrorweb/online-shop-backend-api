@@ -16,9 +16,10 @@ export const registerUser = async (req, res, next) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
-    // Check if the email already exists
+    // Find the user by email
     const existingUser = await User.findOne({ email: email_toLower });
 
+    // Check if the email already exists
     if (existingUser)
       return res.status(400).json({ message: "Email already exists" });
 
@@ -52,25 +53,61 @@ export const loginUser = async (req, res, next) => {
     const user = await User.findOne({ email: email_toLower });
 
     if (!user) {
-      return res.status(401).json({ error: "user not found" });
+      return res.status(401).json({ message: "user not found" });
     }
 
     // Compare the entered password with the hashed password in the database
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      return res.status(401).json({ error: "wrong password" });
+      return res.status(401).json({ message: "wrong password" });
     }
 
     const JWTtoken = generateToken({ user });
 
-    res
-      .status(200)
-      .json({
-        message: "Login successful",
-        email: email_toLower,
-        token: JWTtoken,
-      });
+    res.status(200).json({
+      message: "Login successful",
+      token: JWTtoken,
+    });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+// Uz: user ni jwt bilan tasdiqlash
+// Eng: verify user wiht jwt
+export const verifyUserWithToken = async (req, res) => {
+  const { email } = req.user;
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(401).json({ message: "user not found" });
+    }
+    res.status(200).json({
+      message: "User Verify successful",
+    });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+// Uz: user ni o'chirish jwt dan kelgan id bilan
+// Eng: delete user with _id
+export const deleteUser = async (req, res) => {
+  const { _id } = req.user;
+  try {
+    // Find the user by _id and delete
+    const deletedUser = await User.findByIdAndDelete(_id);
+
+    if (!deletedUser) {
+      return res.status(401).json({ message: "user not found" });
+    }
+
+    return res.status(200).json({ message: "User deleted successfully" });
   } catch (error) {
     next(error);
     // work in progress ErrorHandler.js
