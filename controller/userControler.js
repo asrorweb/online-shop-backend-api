@@ -79,6 +79,7 @@ export const loginUser = async (req, res, next) => {
 // Eng: verify user wiht jwt
 export const verifyUserWithToken = async (req, res) => {
   const { email } = req.user;
+
   try {
     // Find the user by email
     const user = await User.findOne({ email });
@@ -108,6 +109,60 @@ export const deleteUser = async (req, res) => {
     }
 
     return res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+// UZ: user ni yangilash uchun funksiya
+// ENG: function to update a user
+export const updateUser = async (req, res, next) => {
+  const { _id } = req.user;
+  let { email } = req.body;
+
+  try {
+    // Check if the request body contains a new email
+    if (email) {
+      // Check if the email is reserved by another user
+      // Uz: Emailni boshqa user band qilganini tekshirish
+      const existingUserWithUpdatedEmail = await User.findOne({ email });
+
+      if (
+        existingUserWithUpdatedEmail &&
+        existingUserWithUpdatedEmail._id.toString() !== _id
+      ) {
+        return res.status(400).json({ message: "Email is already taken" });
+      }
+    }
+
+    // Check if the request body contains a new password
+    if (req.body.password) {
+      // Hash the new password with bCrypt
+      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+      // Update the password in req.body with the hashed one
+      req.body.password = hashedPassword;
+    }
+
+    // Find the user by ID and update the fields from req.body
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: _id },
+      { $set: req.body },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const JWTtoken = generateToken({ user: updatedUser });
+
+    // Send a success response
+    return res.status(200).json({
+      message: "User updated succes",
+      token: JWTtoken,
+    });
   } catch (error) {
     next(error);
     // work in progress ErrorHandler.js
