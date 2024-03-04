@@ -78,15 +78,24 @@ export const loginUser = async (req, res, next) => {
 // Uz: user ni jwt bilan tasdiqlash
 // Eng: verify user wiht jwt
 export const verifyUserWithToken = async (req, res) => {
-  const { email } = req.user;
+  const { email, password } = req.user;
 
   try {
     // Find the user by email
     const user = await User.findOne({ email });
 
-    if (!user) {
-      return res.status(401).json({ message: "user not found" });
-    }
+    if (!user) return res.status(401).json({ message: "user not found" });
+
+    // // Compare the entered password with the hashed password in the database
+    // const passwordMatch = await bcrypt.compare(password, user.password);
+    // console.log(passwordMatch);
+
+    // console.log("user.password", user.password);
+    // console.log("token password", password);
+
+    // if (!passwordMatch)
+    //   return res.status(401).json({ message: "Wrong password" });
+
     res.status(200).json({
       message: "User Verify successful",
     });

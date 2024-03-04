@@ -7,6 +7,7 @@ import {
   verifyUserWithToken,
 } from "../controller/userControler.js";
 import authenticateToken from "../middlewares/authenticateToken.js";
+import isAdminCheck from "../middlewares/isAdmin.js";
 
 const userRouter = Router();
 
