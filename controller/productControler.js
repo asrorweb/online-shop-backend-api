@@ -1,6 +1,7 @@
 import slugify from "slugify";
 import Product from "../models/product-model.js";
 import mongoose from "mongoose";
+import User from "../models/userModel.js";
 
 export const createProduct = async (req, res, next) => {
   const { name } = req.body;
@@ -106,6 +107,10 @@ export const deleteProduct = async (req, res, next) => {
 
     if (!deletedPoduct) return res.status(404).json({ message: "Product not found" });
 
+    // Remove the deleted product from the basketProducts array in all users
+    // hamma user larning savatidan product ni olib tashlash agar u bo'lsa
+    await User.updateMany({ basketProducts: productId }, { $pull: { basketProducts: productId } });
+
     // UZ: Agar muvaffaqiyatli o'chirilgan bo'lsa
     // ENG: If successfully deleted
     return res.status(200).json({ message: "Product deleted successfully", deletedPoduct });
@@ -138,6 +143,63 @@ export const editProduct = async (req, res, next) => {
     // UZ: Agar muvaffaqiyatli taxrir qilingan bo'lsa
     // ENG: If successfully updated
     return res.status(200).json({ message: "Product updated successfully", updatedProduct });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+export const addProductToUserBasket = async (req, res, next) => {
+  const { productId } = req.params;
+  const { _id } = req.user;
+
+  try {
+    // Foydalanuvchini tanlab olish
+    // Select a user
+    const user = await User.findById(_id);
+
+    // Maxsulotni bor ligini tekshirib olamiz
+    // We can check product availability
+    const isProduct = await Product.findById(productId);
+    if (!isProduct) return res.status(404).json({ message: "Product not found" });
+
+    // Check if the product is already in the basketProducts array
+    if (user.basketProducts.includes(productId)) {
+      return res.status(400).json({ error: "Product already in the basket" });
+    }
+
+    // Mahsulotni savatchaga qo'shish
+    user.basketProducts.push(productId);
+
+    // Foydalanuvchi obyektini saqlash
+    // Save the user object
+    await user.save();
+
+    res.status(200).json({ message: "Product added to the basket successfully" });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+export const removeProductToUserBasket = async (req, res, next) => {
+  const { productId } = req.params;
+  const { _id } = req.user;
+
+  try {
+    // Foydalanuvchini tanlab olish
+    // Select a user
+    const user = await User.findById(_id);
+
+    // Mahsulotni savatdan olib tashlash
+    // Remove the product from the basket
+    user.basketProducts.pull(productId);
+
+    // Foydalanuvchi obyektini saqlash
+    // Save the user object
+    await user.save();
+
+    res.status(200).json({ message: "Product remove from the basket successfully" });
   } catch (error) {
     next(error);
     // work in progress ErrorHandler.js

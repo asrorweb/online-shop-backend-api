@@ -20,8 +20,7 @@ export const registerUser = async (req, res, next) => {
     const existingUser = await User.findOne({ email: email_toLower });
 
     // Check if the email already exists
-    if (existingUser)
-      return res.status(400).json({ message: "Email already exists" });
+    if (existingUser) return res.status(400).json({ message: "Email already exists" });
 
     // Create a new user
     const newUser = new User({
@@ -78,7 +77,7 @@ export const loginUser = async (req, res, next) => {
 // Uz: user ni jwt bilan tasdiqlash
 // Eng: verify user wiht jwt
 export const verifyUserWithToken = async (req, res) => {
-  const { email, password } = req.user;
+  const { email } = req.user;
 
   try {
     // Find the user by email
@@ -86,19 +85,29 @@ export const verifyUserWithToken = async (req, res) => {
 
     if (!user) return res.status(401).json({ message: "user not found" });
 
-    // // Compare the entered password with the hashed password in the database
-    // const passwordMatch = await bcrypt.compare(password, user.password);
-    // console.log(passwordMatch);
-
-    // console.log("user.password", user.password);
-    // console.log("token password", password);
-
-    // if (!passwordMatch)
-    //   return res.status(401).json({ message: "Wrong password" });
-
     res.status(200).json({
       message: "User Verify successful",
     });
+  } catch (error) {
+    next(error);
+    // work in progress ErrorHandler.js
+  }
+};
+
+// get user information
+// user malumotini jo'natish
+export const getUser = async (req, res, next) => {
+  const { _id } = req.user;
+  try {
+    const user = await User.findById(_id).select("-password").populate("basketProducts");
+
+    if (!user) {
+      return res.status(401).json({ message: "user not found" });
+    }
+
+    // const { password, ...userWithOutPassword } = user;
+
+    return res.status(200).json({ user });
   } catch (error) {
     next(error);
     // work in progress ErrorHandler.js
@@ -137,10 +146,7 @@ export const updateUser = async (req, res, next) => {
       // Uz: Emailni boshqa user band qilganini tekshirish
       const existingUserWithUpdatedEmail = await User.findOne({ email });
 
-      if (
-        existingUserWithUpdatedEmail &&
-        existingUserWithUpdatedEmail._id.toString() !== _id
-      ) {
+      if (existingUserWithUpdatedEmail && existingUserWithUpdatedEmail._id.toString() !== _id) {
         return res.status(400).json({ message: "Email is already taken" });
       }
     }
@@ -155,11 +161,7 @@ export const updateUser = async (req, res, next) => {
     }
 
     // Find the user by ID and update the fields from req.body
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: _id },
-      { $set: req.body },
-      { new: true }
-    );
+    const updatedUser = await User.findOneAndUpdate({ _id: _id }, { $set: req.body }, { new: true });
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
